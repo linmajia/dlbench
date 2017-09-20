@@ -14,8 +14,9 @@ tf.app.flags.DEFINE_integer('epochs', 40, """Max epochs for training.""")
 tf.app.flags.DEFINE_integer('log_step', 10, """Log step""")
 tf.app.flags.DEFINE_integer('eval_step', 1, """Evaluate step of epoch""")
 tf.app.flags.DEFINE_integer('device_id', 0, """Device id.""")
+tf.app.flags.DEFINE_integer('epoch_size', 60000, """Epoch size.""")
 #tf.app.flags.DEFINE_string('data_dir', '/home/comp/csshshi/data/tensorflow/MNIST_data/',
-tf.app.flags.DEFINE_string('data_dir', os.environ['HOME']+'/data/tensorflow/MNIST_data/',
+tf.app.flags.DEFINE_string('data_dir', '../../dataset/tensorflow/MNIST_data/',
 #tf.app.flags.DEFINE_string('data_dir', '/home/comp/pengfeixu/Data/tensorflow/MNIST_data/',
                            """Path to the data directory.""")
 tf.app.flags.DEFINE_boolean('use_fp16', False,
@@ -30,7 +31,6 @@ tf.app.flags.DEFINE_integer('num_gpus', 1, """How many GPUs to use.""")
 tf.app.flags.DEFINE_boolean('xla', False,
                             """True to use XLA, which has to be compiled in.""")
 
-EPOCH_SIZE = 60000
 
 def createFakeData(count, featureDim, labelDim):
     features = np.random.randn(count, featureDim)
@@ -119,7 +119,7 @@ def train(model='fcn5'):
         sess.run(init)
         if FLAGS.use_dataset:
             sess.run(iterator.initializer)
-        batch_size_per_epoch = int((EPOCH_SIZE + FLAGS.batch_size - 1)/ FLAGS.batch_size)
+        batch_size_per_epoch = int((FLAGS.epoch_size + FLAGS.batch_size - 1)/ FLAGS.batch_size)
         iterations = FLAGS.epochs * batch_size_per_epoch
         average_batch_time = 0.0
         epochs_info = []
@@ -141,16 +141,16 @@ def train(model='fcn5'):
                 examples_per_sec = FLAGS.batch_size / duration
                 sec_per_batch = float(duration)
                 format_str = ('%s: step %d, loss = %.2f (%.1f examples/sec; %.3f sec/batch)')
-                print (format_str % (datetime.now(), step, loss_value, examples_per_sec, sec_per_batch))
+                print(format_str % (datetime.now(), step, loss_value, examples_per_sec, sec_per_batch))
             if step > 0 and step % (FLAGS.eval_step * batch_size_per_epoch) == 0:
                 average_loss /= FLAGS.eval_step * batch_size_per_epoch
                 accuracy_value = accuracy.eval(feed_dict={images: mnist.test.images, labels: mnist.test.labels})
-                print("test accuracy %g"%accuracy_value)
+                print("test accuracy %g" % accuracy_value)
                 epochs_info.append('%d:%g:%s'%(step/(FLAGS.eval_step*batch_size_per_epoch), accuracy_value, average_loss)) 
                 average_loss = 0.0
         average_batch_time /= iterations
-        print 'average_batch_time: ', average_batch_time
-        print ('epoch_info: %s' % ','.join(epochs_info))
+        print('average_batch_time: ', average_batch_time)
+        print('epoch_info: %s' % ','.join(epochs_info))
 
 
 def main(argv=None):

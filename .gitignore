@@ -31,3 +31,12 @@ multigpu-trained
 *.caffemodel
 *.solverstate
 
+# Generated files
+dataset/
+logs/
+*.model/
+
+# VS files
+*.sln
+*.pyproj
+.vs

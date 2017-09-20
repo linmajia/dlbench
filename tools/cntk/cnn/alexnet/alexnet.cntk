@@ -1,12 +1,5 @@
-WorkDir=.
-OutputDir = "$WorkDir$/Output"
-ModelDir = "$OutputDir$/Models"
-<<<<<<< HEAD
-DataDir = "/home/ipdps/data/cntk/cifar10"
-=======
-DataDir = "/home/comp/csshshi/data/cntk/cifar10"
->>>>>>> 04af71e928411ed296007be339f4cf30f330fdef
-#DataDir = "/home/comp/pengfeixu/Data/cntk/cifar10"
+ModelDir = "../alexnet.model"
+DataDir = "../../dataset/cntk/cifar10"
 
 precision=float
 deviceId=1

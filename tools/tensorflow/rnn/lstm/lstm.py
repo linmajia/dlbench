@@ -49,7 +49,7 @@ $ tar xvf simple-examples.tgz
 
 To run:
 
-$ python ptb_word_lm.py --data_path=simple-examples/data/
+$ python3 ptb_word_lm.py --data_path=simple-examples/data/
 
 """
 from __future__ import absolute_import
@@ -70,15 +70,15 @@ logging = tf.logging
 flags.DEFINE_string(
     "model", "small",
     "A type of model. Possible options are: small, medium, large.")
-#flags.DEFINE_string("data_path", '/home/comp/csshshi/data/tensorflow/lstm_data/data', "data_path")
-flags.DEFINE_string("data_path", os.environ['HOME']+'/data/tensorflow/lstm_data/data', "data_path")
-flags.DEFINE_integer("batchsize", 32, "mini-batch size")
+flags.DEFINE_string("data_dir", '../../dataset/tensorflow/lstm_data/data', "Data dir")
+flags.DEFINE_integer("batch_size", 32, "mini-batch size")
 flags.DEFINE_integer("hiddensize", 256, "hidden units number of each lstm layer")
 flags.DEFINE_integer("numlayer", 2, "number of lstm layers")
 flags.DEFINE_integer("seqlen", 32, "len of sample")
-flags.DEFINE_string("device", '0', "select device id")
+flags.DEFINE_string("device_id", '0', "select device id")
 flags.DEFINE_integer("iters", 1000, "iterations for profiling")
-flags.DEFINE_integer("max_max_epoch", 20, "max epochs for training")
+flags.DEFINE_integer("epochs", 20, "max epochs for training")
+flags.DEFINE_integer("epoch_size", -1, "How many examples an peoch have.")
 
 FLAGS = flags.FLAGS
 
@@ -309,21 +309,35 @@ def get_config():
   else:
     raise ValueError("Invalid model: %s", FLAGS.model)
 
-  config.batch_size = FLAGS.batchsize
+  config.batch_size = FLAGS.batch_size
   config.hidden_size = FLAGS.hiddensize
   config.num_layers = FLAGS.numlayer
   config.num_steps = FLAGS.seqlen
-  config.device = FLAGS.device
+  config.device = FLAGS.device_id
   config.iters = FLAGS.iters
-  config.max_max_epoch = FLAGS.max_max_epoch
+  config.max_max_epoch = FLAGS.epochs
   return config
 
 
-def main(_):
-  if not FLAGS.data_path:
-    raise ValueError("Must set --data_path to PTB data directory")
+def expand_by_duplicate(array, size=None):
+  assert(size > 0)
+  length = len(array)
+  if length > size:
+    return array[0:size]
+  else:
+    count = size // length
+    remained = size % length
+    merged = []
+    for i in range(count): merged.append(array.copy())
+    merged.append(array[0:remained])
+    return np.concatenate(merged)
 
-  raw_data = reader.ptb_raw_data(FLAGS.data_path)
+
+def main(_):
+  if not FLAGS.data_dir:
+    raise ValueError("Must set --data_dir to PTB data directory")
+
+  raw_data = reader.ptb_raw_data(FLAGS.data_dir)
   train_data, valid_data, test_data, _ = raw_data
 
   config = get_config()
@@ -335,6 +349,9 @@ def main(_):
     tf_dev = '/cpu:0'
   else:
     tf_dev = '/gpu:' + config.device
+
+  if FLAGS.epoch_size > 0:
+    train_data = expand_by_duplicate(train_data, FLAGS.epoch_size * config.num_steps)
 
   print(tf_dev)
   tconfig = tf.ConfigProto(allow_soft_placement=True)
@@ -378,3 +395,4 @@ def main(_):
 
 if __name__ == "__main__":
   tf.app.run()
+

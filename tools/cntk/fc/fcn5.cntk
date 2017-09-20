@@ -1,9 +1,5 @@
-WorkDir= "."
-ConfigDir= "."
-ModelDir=$WorkDir$/Output
-DataDir=/home/shshi/data/cntk/mnist
-#DataDir=/home/comp/pengfeixu/Data/cntk/mnist
-#ndlMacros = "$ConfigDir$/Macros.ndl"
+ModelDir=../fc5.model
+DataDir=../../dataset/cntk/mnist
 precision=float
 
 imageLayout = "cudnn"

@@ -1,11 +1,6 @@
-RootDir = "."
-
-ConfigDir = "$RootDir$"
-DataDir = "/home/shshi/data/cntk/cifar10"
-#DataDir = "/home/comp/pengfeixu/Data/cntk/cifar10"
-#DataDir = "/home/ipdps/Data/cntk/cifar10"
-OutputDir = "$RootDir$/Output"
-ModelDir = "$OutputDir$/Models"
+ConfigDir = "."
+DataDir = "../../dataset/cntk/cifar10"
+ModelDir = "../resnet.model"
 
 ndlMacros="$ConfigDir$/Macros.ndl"
 

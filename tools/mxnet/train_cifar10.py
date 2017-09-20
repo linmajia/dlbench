@@ -29,7 +29,7 @@ if __name__ == '__main__':
         # network
         network        = 'alexnet',
         # data
-	data_dir       = os.environ['HOME'] + '/data/mxnet/cifar10_32/',
+        data_dir       = '../dataset/mxnet/cifar10_32/',
         data_train     = 'train.rec',
         data_val       = None, #data_dir + 'test.rec',
         num_classes    = 10,

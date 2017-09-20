@@ -21,25 +21,25 @@ FLAGS = tf.app.flags.FLAGS
 # Basic model parameters.
 tf.app.flags.DEFINE_integer('batch_size', 1024, """Number of images to process in a batch.""")
 tf.app.flags.DEFINE_integer('epochs', 40, """Max epochs for training.""")
+tf.app.flags.DEFINE_integer('epoch_size', 50000, """Epoch size.""")
 tf.app.flags.DEFINE_integer('log_step', 50, """Log step""")
 tf.app.flags.DEFINE_integer('eval_step', 1, """Evaluate step of epoch""")
 tf.app.flags.DEFINE_integer('device_id', 0, """Device id.""")
 #tf.app.flags.DEFINE_string('data_dir', '/home/comp/csshshi/data/tensorflow/cifar10/cifar-10-batches-bin', """Data directory""")
-tf.app.flags.DEFINE_string('data_dir', os.environ['HOME']+'/data/tensorflow/cifar10/cifar-10-batches-bin', """Data directory""")
+tf.app.flags.DEFINE_string('data_dir', '../../dataset/tensorflow/cifar10/cifar-10-batches-bin', """Data directory""")
 #tf.app.flags.DEFINE_string('data_dir', '/home/comp/pengfeixu/Data/tensorflow/cifar10/cifar-10-batches-bin', """Data directory""")
-tf.app.flags.DEFINE_string('train_dir', './trained_models/',
+tf.app.flags.DEFINE_string('train_dir', '../alexnet.model/',
                            """Path to the data directory.""")
 tf.app.flags.DEFINE_boolean('use_fp16', False,
                             """Train the model using fp16.""")
 tf.app.flags.DEFINE_boolean('log_device_placement', False,
                             """Whether to log device placement.""")
-tf.app.flags.DEFINE_boolean('use_dataset', False, """True to use datasets""")
+tf.app.flags.DEFINE_boolean('use_dataset', True, """True to use datasets""")
 tf.app.flags.DEFINE_boolean('data_format', 'NCHW', """NCHW for GPU and NHWC for CPU.""")
 
 data_format = 'NCHW'
 data_format_c = 'channels_first'
 
-EPOCH_SIZE = 50000
 TEST_SIZE = 10000
 
 def get_device_str(device_id):
@@ -183,7 +183,7 @@ def train():
   device_str = get_device_str(FLAGS.device_id)
   if device_str.find('cpu') >= 0: # cpu version
       num_threads = os.getenv('OMP_NUM_THREADS', 1)
-      print 'num_threads: ', num_threads
+      print('num_threads: ', num_threads)
       config = tf.ConfigProto(allow_soft_placement=True, intra_op_parallelism_threads=int(num_threads))
   with tf.Graph().as_default(), tf.device(device_str), tf.Session(config=config) as sess:
       initalizer = None
@@ -219,13 +219,13 @@ def train():
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(sess=sess, coord=coord)
       real_batch_size = FLAGS.batch_size
-      num_batches_per_epoch = int((EPOCH_SIZE + real_batch_size - 1)/ real_batch_size)
+      num_batches_per_epoch = int((FLAGS.epoch_size + real_batch_size - 1)/ real_batch_size)
       iterations = FLAGS.epochs * num_batches_per_epoch 
       average_batch_time = 0.0
 
       epochs_info = []
       average_loss = 0.0
-      for step in xrange(iterations):
+      for step in range(iterations):
           start_time = time.time()
           _, loss_v = sess.run([grad, loss_value])
           duration = time.time() - start_time
@@ -236,10 +236,10 @@ def train():
               examples_per_sec = FLAGS.batch_size / duration
               sec_per_batch = float(duration)
               format_str = ('%s: step %d, loss = %.2f (%.1f examples/sec; %.3f sec/batch)')
-              print (format_str % (datetime.now(), step, loss_v, examples_per_sec, sec_per_batch))
+              print(format_str % (datetime.now(), step, loss_v, examples_per_sec, sec_per_batch))
           if step > 0 and step % (FLAGS.eval_step * num_batches_per_epoch) == 0:
               average_loss /= num_batches_per_epoch * FLAGS.eval_step
-              print ('epoch: %d, loss: %.2f' % (step /num_batches_per_epoch, average_loss))
+              print('epoch: %d, loss: %.2f' % (step /num_batches_per_epoch, average_loss))
               epochs_info.append('%d:_:%s'%(step/(FLAGS.eval_step*num_batches_per_epoch), average_loss)) 
               average_loss = 0.0
           if step == iterations-1:
@@ -249,8 +249,8 @@ def train():
         coord.request_stop()
         coord.join(threads)
       average_batch_time /= iterations
-      print 'average_batch_time: ', average_batch_time
-      print ('epoch_info: %s' % ','.join(epochs_info))
+      print('average_batch_time: ', average_batch_time)
+      print('epoch_info: %s' % ','.join(epochs_info))
 
 
 def main(_):

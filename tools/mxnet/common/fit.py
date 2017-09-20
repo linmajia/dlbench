@@ -60,7 +60,7 @@ def add_fit_args(parser):
                        help='max num of epochs')
     train.add_argument('--lr', type=float, default=0.1,
                        help='initial learning rate')
-    train.add_argument('--lr-factor', type=float, default=0.1,
+    train.add_argument('--lr-factor', type=float, default=1,
                        help='the ratio to reduce lr on each step')
     train.add_argument('--lr-step-epochs', type=str,
                        help='the epochs to reduce the lr, e.g. 30,60')
@@ -155,7 +155,7 @@ def fit(args, network, data_loader, init=None, **kwargs):
         #initializer   = mx.initializer.Xavier( rnd_type='gaussian', factor_type="in", magnitude=2)
         # initializer   = mx.init.Xavier(factor_type="in", magnitude=2.34),
     else:
-	initializer = init
+        initializer = init
 
     # evaluation metrices
     eval_metrics = ['accuracy', 'ce']

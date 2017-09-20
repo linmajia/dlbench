@@ -1,138 +1,68 @@
 import argparse
-import sys,os,time
-import subprocess
-import collect_gpu_power as cgp
-from threading import Thread
+import importlib
+import os
+
+from tools.common.config import BenchmarkConfig
+from tools.common.util import get_logger, get_timestr
 
 
-# Parse arguments
-parser = argparse.ArgumentParser(description='Benchmark deep learning tools')
-parser.add_argument('-config', type=str, help='Path to the config file')
-parser.add_argument('-post', type=bool, default=False, help='Post to our server. You should keep it False')
-parser.add_argument('-debug', type=bool, default=False, help='Debug benchmark.py')
+def visualize_result(statistics):
+    ''' Draw a table displaying benchmark result. '''
+    statistics.sort(key=lambda item: item[1].net_name + '_' + item[0]) # Sort by network, tool
+    text = 'net_name,tool,device_id,thread_or_gpu_count,batch_size,epoch_size,num_epoch,learning_rate,seconds_per_batch\n'
+    for tool, exp, time in statistics:
+        text += ('%s,%s,%s,%d,%d,%d,%d,%.4f,%.4f\n' %
+            (exp.net_name, tool, exp.device_id, exp.device_count, exp.batch_size, exp.epoch_size, exp.num_epoch, exp.learning_rate, time))
+    return text
 
-args = parser.parse_args()
 
-if args.debug: print "[DEBUG] args:" + str(args)
+def get_runner(tool, data_dir):
+    ''' Use reflection technique to instantiate runner of each tool. '''
+    module = importlib.import_module('tools.%s.runner' % tool)
+    for attr_name in dir(module):
+        if attr_name.lower() == tool + 'runner':
+            clazz = getattr(module, attr_name)
+            return clazz(data_dir)
+    raise Exception("Cannot find runner class in %s!" % module)
 
-# Parse config file
-config_experiments = False
-experiments = ''
-host_file = None
-flag = ''
-tools = ''
-cpu_name = ''
-gpu_name = ''
-cuda_driver = ''
-cudnn = ''
-cuda = ''
-cpu_count = '1'
-if args.config is not None:
-	with open(args.config) as f:
-		content = f.readlines()
-	#print content
-	for line in content:
-		line = line.split('#')[0].replace('\t','').replace('\n','').replace(' ', '')
-		if len(line) < 1 or "None" in line:
-			continue 
-		if not config_experiments:	
-			if "flag:" in line:
-				flag = line.split(':')[1]
-			elif "tools:" in line:
-				tools = line.split(':')[1].split(',')
-			elif "{" in line:
-				config_experiments = True
-			elif "host_file:" in line:
-				host_file = line.split(':')[1]
-			elif "cpu_name:" in line:
-				cpu_name = line.split(':')[1]
-			elif "gpu_name:" in line:
-				gpu_name = line.split(':')[1]
-			elif "cuda_driver:" in line:
-				cuda_driver = line.split(':')[1]
-			elif "cudnn:" in line:
-				cudnn = line.split(':')[1]
-			elif "cuda:" in line:
-				cuda = line.split(':')[1]
-		else:
-			if "}" in line:
-				config_experiments = False
-				experiments = experiments[:len(experiments)-1].replace('\t','').replace(' ','').split(':')
-			else:
-				experiments += line + ':'
-else:
-	print("Please add -config <path to your config file>")
-	sys.exit(0)
 
-post_flags = " -f " + flag + " -P " + cpu_name + " -r " + cuda_driver + " -C " + cuda + " -D " + cudnn
+def dispatch(args, logger):
+    # Prepare directory for output
+    root_dir = os.path.dirname(os.path.abspath(__file__))
+    data_dir = os.path.join(root_dir, 'dataset')
+    log_dir = os.path.abspath(args.result) if args.result else os.path.join(root_dir, 'logs', 'run_' + get_timestr())
+    if not os.path.isdir(log_dir): os.makedirs(log_dir)
+    logger.info('Log directory is: ' + log_dir)
+    
+    # Execute each DL experiment
+    statistics = []
+    logger.info('Start to run DL benchmark ===>')
+    config = BenchmarkConfig(args.config)
+    logger.info('Benchmark Configuration is:\n' + str(config))
+    for tool in config.tools:
+        runner = get_runner(tool, data_dir)
+        for exp in config.experiments:
+            seconds_per_batch = runner.start_experiment(exp, log_dir)
+            if seconds_per_batch: statistics.append((tool, exp, seconds_per_batch))
+    logger.info('Finish benchmark and statistics is:')
 
-if args.debug:
-	print "[DEBUG] Defalut post flags:" + str(post_flags)
-	print "[DEBUG] Tool(s):" + str(tools)
-	print "[DEBUG] Experiments:" + str(experiments)
+    # Save result and print
+    text = visualize_result(statistics)
+    print(text)
+    log_path = os.path.join(log_dir, 'result.csv')
+    with open(log_path, mode='w') as fout:
+        logger.info('Result is saved to: ' + log_path)
+        fout.write(text)
 
-# Benchmark each tool
-root_path = os.path.dirname(os.path.abspath(__file__))
-host_name = subprocess.check_output("hostname", shell=True).strip().split('\n')[0]
-if os.path.exists(root_path + "/logs/") is not True:
-	os.system("rm -rf logs")
-	print "Creating log directory... " + root_path + "/logs/"
-	os.system("mkdir logs")
 
-if args.debug:
-	print "[DEBUG] Benchmark running on: " + host_name
-	print "[DEBUG] Root path:" + root_path
-
-for tool in tools:
-	work_dir = root_path + "/tools/" + tool
-	for experiment in experiments:
-		os.chdir(work_dir)
-		exp_args = experiment.split(";")
-		device_name = ''
-		device_count = exp_args[3]
-		log_file = ''
-		if "-1" in exp_args[2]:
-			device_name = cpu_name
-			log_file = tool + "-" + exp_args[0] + "-" + exp_args[1] + "-" + device_name + "-c" + exp_args[3] + "-" +"b"+ exp_args[4] + "-" 
-		else:
-			device_name = gpu_name
-			log_file = tool + "-" + exp_args[0] + "-" + exp_args[1] + "-" + device_name + "-devId" + exp_args[2] + "-c" + exp_args[3] + "-" +"b"+ exp_args[4] + "-" 
-		print "\n-------Benchmarking " + tool + " " + exp_args[1] + "-------"
-		log_file += time.ctime()+ "-" + host_name + ".log"
-		log_file = log_file.replace(" ","_")
-		power_log_file = '%s/logs/power_%s' % (root_path, log_file)
-		bm_script = "python " + tool + "bm.py" 
-		bm_script += " -netType " + exp_args[0] + " -log "+log_file+" -batchSize "+exp_args[4]+" -network "+exp_args[1]+" -lr "+exp_args[7]
-		if "-1" in exp_args[2]:
-			bm_script += " -devId " + exp_args[2] + " -numEpochs " + exp_args[5] + " -epochSize " + exp_args[6] + " -cpuCount " + exp_args[3]
-			post_flags +=  " -c " + cpu_name 
-		else:
-			bm_script += " -devId " + exp_args[2] + " -numEpochs " + exp_args[5] + " -epochSize " + exp_args[6] + " -gpuCount " + exp_args[3]
-			post_flags +=  " -d " + gpu_name 
-		if host_file is not None and len(host_file) > 4:
-			bm_script += " -hostFile " + host_file
-		print bm_script
-		try:
-			thread = Thread(target = cgp.start_collecting_gpu_power, args = (bm_script, power_log_file))
-			thread.start()
-			result_args = subprocess.check_output(bm_script, shell=True).strip().split('\n')[0]
-		except Exception as e:
-			print "Benchmark failed with " + bm_script 
-			os.system("cat " + root_path + "/logs/" + log_file)
-			continue
-        
-		power, mem = cgp.get_average_gpu_power_and_mem(gpu_name, power_log_file)
-		post_flags += " " +  result_args + " -b " + exp_args[4] + " -g " + exp_args[3] + " -e " + exp_args[6] + " -E " + exp_args[5] 
-		post_flags += " -l " + log_file + " -T " + tool + " -n " + exp_args[1] 
-		os.chdir(root_path)
-		if args.post is True:
-			post_script = "python post_record.py " + post_flags
-			print post_script
-			print(subprocess.check_output(post_script, shell=True).strip().split('\n')[0])
-			post_flags = " -f " + flag + " -d " + device_name + " -P " + cpu_name + " -A " + str(mem) + " -r " + cuda_driver + " -C " + cuda + " -D " + cudnn + " -p " + str(power)
-			post_script = ''
-		else:
-			print "Result:"
-			print result_args
-		print "Done!"
-
+if __name__ == '__main__':
+    # Parse arguments
+    parser = argparse.ArgumentParser(description='Benchmark deep learning tools')
+    parser.add_argument('-config', required=True, type=str, help='Path to the config file.')
+    parser.add_argument('-result', default=None, type=str, help='Directory to store the result.')
+    args, _ = parser.parse_known_args()
+    
+    # Launch dispatcher
+    logger = get_logger('dlbench')
+    logger.info('Parsed args: ' + str(args))
+    dispatch(args, logger)

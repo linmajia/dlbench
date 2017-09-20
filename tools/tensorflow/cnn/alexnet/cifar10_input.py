@@ -23,7 +23,7 @@ import os
 
 #from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
-import cPickle
+import pickle
 import numpy as np
 
 
@@ -65,7 +65,7 @@ class Cifar10Data(Dataset):
     """Reads from data file and return images and labels in a numpy array."""
     if subset == 'train':
       filenames = [os.path.join(self.data_dir, 'data_batch_%d' % i)
-                   for i in xrange(1, 6)]
+                   for i in range(1, 6)]
     elif subset == 'validation':
       filenames = [os.path.join(self.data_dir, 'test_batch')]
     else:
@@ -73,14 +73,14 @@ class Cifar10Data(Dataset):
 
     inputs = []
     for filename in filenames:
-      with open(filename, 'r') as f:
-        inputs.append(cPickle.load(f))
+      with open(filename, 'rb') as f:
+        inputs.append(pickle.load(f, encoding='bytes'))
     # See http://www.cs.toronto.edu/~kriz/cifar.html for a description of the
     # input format.
     all_images = np.concatenate(
-        [each_input['data'] for each_input in inputs]).astype(np.float32)
+        [each_input[b'data'] for each_input in inputs]).astype(np.float32)
     all_labels = np.concatenate(
-        [each_input['labels'] for each_input in inputs]).astype(np.int32)
+        [each_input[b'labels'] for each_input in inputs]).astype(np.int32)
     return all_images, all_labels
 
 
@@ -232,7 +232,7 @@ def inputs(eval_data, data_dir, batch_size, data_format='NCHW'):
   shuffle = False
   if not eval_data:
     filenames = [os.path.join(data_dir, 'data_batch_%d.bin' % i)
-                 for i in xrange(1, 6)]
+                 for i in range(1, 6)]
     num_examples_per_epoch = NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN
     shuffle = True
   else:

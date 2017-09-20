@@ -1,7 +1,7 @@
 from common import find_mxnet
 import numpy as np
 import os, sys
-print sys.path
+print(sys.path)
 import mxnet as mx
 import argparse
 
@@ -10,7 +10,7 @@ parser = argparse.ArgumentParser(description="Train RNN on Penn Tree Bank",
 parser.add_argument('--data-dir', type=str, help='the input data directory')
 
 parser.add_argument('--sequence-lens', type=str, default="32", help='the sequence lengths, e.g "8,16,32,64,128"')
-parser.add_argument('--num-examples', type=str, help='Flag for consistancy, no use in rnn')
+parser.add_argument('--num-examples', type=int, default=0, help='Flag for consistancy, no use in rnn')
 parser.add_argument('--test', default=False, action='store_true',
                     help='whether to do testing instead of training')
 parser.add_argument('--model-prefix', type=str, default=None,
@@ -56,18 +56,37 @@ buckets = [int(i) for i in args.sequence_lens.split(',')]
 start_label = 1
 invalid_label = 0
 
-data_dir = os.environ["HOME"] + "/data/mxnet/ptb/" if args.data_dir is None else args.data_dir
+data_dir = args.data_dir if args.data_dir else '../dataset/mxnet/ptb'
 
-def tokenize_text(fname, vocab=None, invalid_label=-1, start_label=0):
+
+def expand_by_duplicate(array, size=None):
+  assert(size > 0)
+  length = len(array)
+  if length > size:
+    return array[0:size]
+  else:
+    count = size // length
+    remained = size % length
+    merged = []
+    for i in range(count): merged.append(array.copy())
+    merged.append(array[0:remained])
+    return np.concatenate(merged)
+
+
+def tokenize_text(fname, vocab=None, invalid_label=-1, start_label=0, num_examples=0):
     lines = open(fname).readlines()
     lines = [filter(None, i.split(' ')) for i in lines]
+    if num_examples > 0: lines = expand_by_duplicate(lines, num_examples)
+        
     sentences, vocab = mx.rnn.encode_sentences(lines, vocab=vocab, invalid_label=invalid_label, start_label=start_label)
     return sentences, vocab
 
 def get_data(layout):
-    train_sent, vocab = tokenize_text(data_dir + "ptb.train.txt", start_label=start_label,
-                                      invalid_label=invalid_label)
-    val_sent, _ = tokenize_text(data_dir + "ptb.test.txt", vocab=vocab, start_label=start_label,
+    train_path = os.path.join(data_dir, "ptb.train.txt")
+    train_sent, vocab = tokenize_text(train_path, start_label=start_label,
+                                      invalid_label=invalid_label, num_examples=args.num_examples)
+    test_path = os.path.join(data_dir, "ptb.test.txt")
+    val_sent, _ = tokenize_text(test_path, vocab=vocab, start_label=start_label,
                                 invalid_label=invalid_label)
 
     data_train  = mx.rnn.BucketSentenceIter(train_sent, args.batch_size, buckets=buckets, invalid_label=invalid_label, layout=layout)
@@ -136,7 +155,7 @@ def train(args):
 
     if args.optimizer not in ['adadelta', 'adagrad', 'adam', 'rmsprop']:
         opt_params['momentum'] = args.mom
-    print str(int((sample_size-args.batch_size)/args.batch_size))
+    print(int((sample_size-args.batch_size)/args.batch_size))
     model.fit(
         train_data          = data_train,
         eval_data           = data_val,

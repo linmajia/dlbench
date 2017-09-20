@@ -19,12 +19,12 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import cPickle
+import pickle
 import os
 import six
 import numpy as np
 
-#from six.moves import xrange  # pylint: disable=redefined-builtin
+#from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
 # Process images of this size. Note that this differs from the original CIFAR
@@ -66,22 +66,22 @@ class Cifar10Data(Dataset):
     """Reads from data file and return images and labels in a numpy array."""
     if subset == 'train':
       filenames = [os.path.join(self.data_dir, 'data_batch_%d' % i)
-                   for i in xrange(1, 6)]
+                   for i in range(1, 6)]
     elif subset == 'validation':
-      filenames = [os.path.join(self.data_dir, 'test_batch')]
+      filenames = [os.path.join(self.data_dir, 'test_batch.bin')]
     else:
       raise ValueError('Invalid data subset "%s"' % subset)
 
     inputs = []
     for filename in filenames:
-      with open(filename, 'r') as f:
-        inputs.append(cPickle.load(f))
+      with open(filename, 'rb') as f:
+        inputs.append(pickle.load(f, encoding='bytes'))
     # See http://www.cs.toronto.edu/~kriz/cifar.html for a description of the
     # input format.
     all_images = np.concatenate(
-        [each_input['data'] for each_input in inputs]).astype(np.float32)
+        [each_input[b'data'] for each_input in inputs]).astype(np.float32)
     all_labels = np.concatenate(
-        [each_input['labels'] for each_input in inputs]).astype(np.int32)
+        [each_input[b'labels'] for each_input in inputs]).astype(np.int32)
     return all_images, all_labels
 
 
@@ -237,7 +237,7 @@ def distorted_inputs(data_dir, batch_size):
   min_fraction_of_examples_in_queue = 0.4
   min_queue_examples = int(NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN *
                            min_fraction_of_examples_in_queue)
-  print ('Filling queue with %d CIFAR images before starting to train. '
+  print('Filling queue with %d CIFAR images before starting to train. '
          'This will take a few minutes.' % min_queue_examples)
 
   # Generate a batch of images and labels by building up a queue of examples.

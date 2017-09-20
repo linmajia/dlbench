@@ -12,14 +12,14 @@ import numpy as np
 import gzip, struct
 
 
-def read_data(data_path, label, image):
-    #with gzip.open(data_path + label) as flbl:
-    with open(data_path + label) as flbl:
-        magic, num = struct.unpack(">II", flbl.read(8))
+def read_data(data_dir, label, image):
+    label_path = os.path.join(data_dir, label)
+    with open(label_path, mode='rb') as flbl:
+        magic, num = struct.unpack('>II', flbl.read(8))
         label = np.fromstring(flbl.read(), dtype=np.int8)
-    #with gzip.open(data_path + image) as fimg:
-    with open(data_path + image) as fimg:
-        magic, num, rows, cols = struct.unpack(">IIII", fimg.read(16))
+    image_path = os.path.join(data_dir, image)
+    with open(image_path, mode='rb') as fimg:
+        magic, num, rows, cols = struct.unpack('>IIII', fimg.read(16))
         image = np.fromstring(fimg.read(), dtype=np.uint8).reshape(len(label), rows, cols)
     return (label, image)
 
@@ -47,7 +47,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="train mnist", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--num-classes', type=int, default=10, help='the number of classes')
     parser.add_argument('--num-examples', type=int, default=60000, help='the number of training examples')
-    parser.add_argument('--data-dir', type=str, default=os.environ['HOME'] + '/data/mxnet/mnist/')
+    parser.add_argument('--data-dir', type=str, default='../dataset/mxnet/mnist/')
     fit.add_fit_args(parser)
     parser.set_defaults(
         # network

@@ -1,5 +1,6 @@
-import mxnet as mx
+import os
 import random
+import mxnet as mx
 from mxnet.io import DataBatch, DataIter
 import numpy as np
 
@@ -101,12 +102,12 @@ def get_rec_iter(args, kv=None):
         (rank, nworker) = (0, 1)
     rgb_mean = [float(i) for i in args.rgb_mean.split(',')]
     train = mx.io.ImageRecordIter(
-        path_imgrec         = args.data_dir + args.data_train,
+        path_imgrec         = os.path.join(args.data_dir, args.data_train),
         label_width         = 1,
 #        mean_r              = rgb_mean[0],
 #        mean_g              = rgb_mean[1],
 #        mean_b              = rgb_mean[2],
-	mean_img            = args.data_dir + 'mean.bin',
+        mean_img            = os.path.join(args.data_dir, 'mean.bin'),
         data_name           = 'data',
         label_name          = 'softmax_label',
         data_shape          = image_shape,
@@ -125,14 +126,14 @@ def get_rec_iter(args, kv=None):
         rand_mirror         = False, #args.random_mirror,
         preprocess_threads  = args.data_nthreads,
         shuffle             = True,
-	shuffle_chunk_size  = 32,
-	shuffle_chunk_seed  = 1234,
+        shuffle_chunk_size  = 32,
+        shuffle_chunk_seed  = 1234,
         num_parts           = nworker,
         part_index          = rank)
     if args.data_val is None:
         return (train, None)
     val = mx.io.ImageRecordIter(
-        path_imgrec         = args.data_dir + args.data_val,
+        path_imgrec         = os.path.join(args.data_dir, args.data_val),
         label_width         = 1,
         mean_r              = rgb_mean[0],
         mean_g              = rgb_mean[1],
