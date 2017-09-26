@@ -12,7 +12,20 @@ import numpy as np
 import gzip, struct
 
 
-def read_data(data_dir, label, image):
+def expand_by_duplicate(array, size):
+  length = len(array)
+  if length > size:
+    return array[0:size]
+  else:
+    count = size // length
+    remained = size % length
+    merged = []
+    for i in range(count): merged.append(array.copy())
+    merged.append(array[0:remained])
+    return np.concatenate(merged)
+
+
+def read_data(data_dir, label, image, epoch_size=0):
     label_path = os.path.join(data_dir, label)
     with open(label_path, mode='rb') as flbl:
         magic, num = struct.unpack('>II', flbl.read(8))
@@ -21,6 +34,10 @@ def read_data(data_dir, label, image):
     with open(image_path, mode='rb') as fimg:
         magic, num, rows, cols = struct.unpack('>IIII', fimg.read(16))
         image = np.fromstring(fimg.read(), dtype=np.uint8).reshape(len(label), rows, cols)
+        
+    if epoch_size > 0:
+        image = expand_by_duplicate(image, epoch_size)
+        label = expand_by_duplicate(label, epoch_size)
     return (label, image)
 
 
@@ -36,7 +53,7 @@ def get_mnist_iter(args, kv):
     """
     #(train_lbl, train_img) = read_data(args.data_dir, 'train-labels-idx1-ubyte.gz', 'train-images-idx3-ubyte.gz')
     #(val_lbl, val_img) = read_data(args.data_dir, 't10k-labels-idx1-ubyte.gz', 't10k-images-idx3-ubyte.gz')
-    (train_lbl, train_img) = read_data(args.data_dir, 'train-labels-idx1-ubyte', 'train-images-idx3-ubyte')
+    (train_lbl, train_img) = read_data(args.data_dir, 'train-labels-idx1-ubyte', 'train-images-idx3-ubyte', args.num_examples)
     (val_lbl, val_img) = read_data(args.data_dir, 't10k-labels-idx1-ubyte', 't10k-images-idx3-ubyte')
     train = mx.io.NDArrayIter( to4d(train_img), train_lbl, args.batch_size, shuffle=True)
     val = mx.io.NDArrayIter( to4d(val_img), val_lbl, args.batch_size)
