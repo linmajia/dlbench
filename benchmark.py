@@ -30,7 +30,7 @@ def dispatch(args, logger):
     # Prepare directory for output
     root_dir = os.path.dirname(os.path.abspath(__file__))
     data_dir = os.path.join(root_dir, 'dataset')
-    log_dir = os.path.abspath(args.result) if args.result else os.path.join(root_dir, 'logs', 'run_' + get_timestr())
+    log_dir = os.path.abspath(args.result) if args.result else os.path.join(root_dir, 'logs', 'dlbench_' + get_timestr())
     if not os.path.isdir(log_dir): os.makedirs(log_dir)
     logger.info('Log directory is: ' + log_dir)
     

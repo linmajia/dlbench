@@ -1,8 +1,9 @@
 # Set up ENV
 cwd=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd -P )
+logdir="$cwd/logs/dlbench_$(date +%Y-%m-%d-%H-%M-%S)"
+config="$logdir/benchmark.config"
+mkdir -p $logdir
 src="$cwd/configs/benchmark.config"
-mkdir -p "$cwd/logs"
-config="$cwd/logs/$(date +%Y%m%d%H%M).config"
 gpu=$(python -m pip show tensorflow-gpu)
 if [[ "$gpu" == "" ]]; then # CPU
     awk '!/^gpu;/' $src >$config
@@ -11,8 +12,6 @@ else # GPU
 fi
 
 # Run Python
-echo "excuting: PYTHONPATH=$cwd:$PYTHONPATH python -u $cwd/benchmark.py -config $config"
-PYTHONPATH=$cwd:$PYTHONPATH python -u $cwd/benchmark.py -config $config
-if [ $? -eq 0 ]; then
-    rm -f $config
-fi
+logpath="$logdir/benchmark.log"
+echo "excuting: PYTHONPATH=$cwd:$PYTHONPATH python -u $cwd/benchmark.py -config $config -result $logdir 2>&1 | tee $logpath"
+PYTHONPATH=$cwd:$PYTHONPATH python -u $cwd/benchmark.py -config $config -result $logdir 2>&1 | tee $logpath
