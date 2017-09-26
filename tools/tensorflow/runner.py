@@ -47,8 +47,8 @@ class TensorFlowRunner(Runner):
                 env = self.create_cpu_env(exp.device_count)
             script_path = os.path.join(self.base_dir, NET_TO_FILE[exp.net_name])
             dataset = os.path.join(self.data_dir, NET_TO_DATA[exp.net_name])
-            cmd = ('python -u %s --data_dir=%s --batch_size=%d --epochs=%d --epoch_size=%d --device_id=%s' %
-                (script_path, dataset, exp.batch_size, exp.num_epoch, exp.epoch_size, exp.device_id))
+            cmd = ('python -u %s --data_dir=%s --batch_size=%d --epochs=%d --epoch_size=%d --device_id=%s --lr=%f' %
+                (script_path, dataset, exp.batch_size, exp.num_epoch, exp.epoch_size, exp.device_id, exp.learning_rate))
             log_path = os.path.join(log_dir, 'tensorflow_%s.log' % str(exp).replace(';', '_'))
             
             # Execute and fetch result

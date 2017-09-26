@@ -30,6 +30,7 @@ tf.app.flags.DEFINE_boolean('use_dataset', False,
 tf.app.flags.DEFINE_integer('num_gpus', 1, """How many GPUs to use.""")
 tf.app.flags.DEFINE_boolean('xla', False,
                             """True to use XLA, which has to be compiled in.""")
+tf.app.flags.DEFINE_float('lr', 0.05, 'Learning rate.')
 
 
 def createFakeData(count, featureDim, labelDim):
@@ -111,8 +112,7 @@ def train(model='fcn5'):
         predictionCorrectness = tf.equal(tf.argmax(logits, 1), tf.argmax(labels, 1))
         accuracy = tf.reduce_mean(tf.cast(predictionCorrectness, "float"))
 
-        lr = 0.05
-        optimizer = tf.train.MomentumOptimizer(lr, 0.9).minimize(loss)
+        optimizer = tf.train.MomentumOptimizer(FLAGS.lr, 0.9).minimize(loss)
 
         init = tf.global_variables_initializer()
 

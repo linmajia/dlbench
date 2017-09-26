@@ -38,6 +38,7 @@ tf.app.flags.DEFINE_boolean('log_device_placement', False,
                             """Whether to log device placement.""")
 tf.app.flags.DEFINE_boolean('use_dataset', True, """True to use datasets""")
 tf.app.flags.DEFINE_string('data_format', 'NCHW', """NCHW for GPU and NHWC for CPU.""")
+tf.app.flags.DEFINE_float('lr', 0.01, 'Learning rate.')
 
 TEST_SIZE = 10000
 
@@ -77,10 +78,9 @@ def train():
       # Add a simple objective so we can calculate the backward pass.
       loss_value = loss(logits, labels)
       # Compute the gradient with respect to all the parameters.
-      lr = 0.01
       update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
       with tf.control_dependencies(update_ops):
-        grad = tf.train.MomentumOptimizer(lr, 0.9).minimize(loss_value)
+        grad = tf.train.MomentumOptimizer(FLAGS.lr, 0.9).minimize(loss_value)
 
       # Create a saver.
       saver = tf.train.Saver(tf.global_variables())

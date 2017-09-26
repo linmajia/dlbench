@@ -79,6 +79,7 @@ flags.DEFINE_string("device_id", '0', "select device id")
 flags.DEFINE_integer("iters", 1000, "iterations for profiling")
 flags.DEFINE_integer("epochs", 20, "max epochs for training")
 flags.DEFINE_integer("epoch_size", -1, "How many examples an peoch have.")
+flags.DEFINE_float('lr', 0.1, 'Learning rate.')
 
 FLAGS = flags.FLAGS
 
@@ -316,6 +317,7 @@ def get_config():
   config.device = FLAGS.device_id
   config.iters = FLAGS.iters
   config.max_max_epoch = FLAGS.epochs
+  config.learning_rate = FLAGS.lr
   return config
 
 
